@@ -109,7 +109,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // PATIENT ROUTES
     // ==========================================
     Route::prefix('patient')->name('patient.')->middleware(['role:patient'])->group(function () {
-        
+        // Route for the logged-in patient's dashboard
+Route::get('/patient/dashboard', [\App\Http\Controllers\PatientController::class, 'showPatientDashboard'])
+    ->middleware('auth')
+    ->name('patient.dashboard');
        Route::get('/dashboard', function () {
             $patientId = auth()->user()->userID;
              
@@ -141,7 +144,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
              // Make sure to add 'myAppointments' to this list!
              return view('patient.dashboard', compact('recommendedResources', 'generalResources', 'currentMood', 'availableAssessments', 'myAppointments'));
         })->name('dashboard');
-
         Route::get('/assessments', [PatientAssessmentController::class, 'index'])->name('assessments.index');
         Route::get('/assessments/{id}', [PatientAssessmentController::class, 'show'])->name('assessments.show');
         Route::get('/assessment-results/{id}', [PatientAssessmentController::class, 'result'])->name('assessments.result');

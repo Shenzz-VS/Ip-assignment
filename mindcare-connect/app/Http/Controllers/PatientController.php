@@ -3,36 +3,32 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
+use Illuminate\Support\Facades\Http; 
 
 class PatientController extends Controller
 {
-    public function edit($id)
+    public function showPatientDashboard()
     {
-        $user = User::where('role', 'patient')->findOrFail($id);
-        return view('admin.users.edit', compact('user'));
-    }
+        // Securely fetch the active patient's ID from the session (Mitigating IDOR)
+        $patientId = auth()->id(); 
 
-    public function update(Request $request, $id)
-    {
-        $user = User::where('role', 'patient')->findOrFail($id);
-        
-        $request->validate([
-            'name' => 'required|string|max:255',
-            // Ensure the email is unique, but ignore this specific user's ID
-            'email' => 'required|email|unique:users,email,' . $id . ',userID', 
+        // Consume the external Counseling & Appointment Module API
+        $response = Http::get('http://127.0.0.1:8000/api/v1/counselor/assigned', [
+            'patientId' => $patientId, 
+            'timeStamp' => now()->format('Y-m-d H:i:s') 
         ]);
 
-        $user->update($request->only('name', 'email'));
+        // Verify the response is successful and the status flag is 'S'
+        if ($response->successful() && $response->json('status') === 'S') {
+            
+            $counselorName = $response->json('counselorName');
+            $counselorEmail = $response->json('counselorEmail');
+            $counselorDetails = $response->json('counselorDetails'); 
 
-        return redirect()->route('admin.dashboard')->with('status', 'Patient account successfully updated.');
-    }
-
-    public function destroy($id)
-    {
-        $user = User::where('role', 'patient')->findOrFail($id);
-        $user->delete(); // This will cascade and delete their journals/appointments automatically!
-
-        return redirect()->route('admin.dashboard')->with('status', 'Patient account permanently removed.');
-    }
-}
+            // Pass the consumed counselor data into your patient dashboard view
+            return view('patient.dashboard', compact('counselorName', 'counselorEmail', 'counselorDetails'));
+        }
+        
+        // Fallback if the counseling API fails
+        return view('patient.dashboard')->with('error', 'Unable to retrieve assigned counselor details.');
+    }   }

@@ -35,9 +35,9 @@ class WellnessResourceController extends Controller
         \App\Models\WellnessResource::create([
             'admin_id'=>auth()->user()->userID,
             'title' => $request->title,
-            'description' => $request->description,
-            'content' => $request->content,
-            'tags' => $request->tags,
+'description' => $request->input('description'),
+'content'     => $request->input('content'), // This fixes the protected visibility error
+'tags'        => $request->input('tags'),
             'video_url' => $request->video_url, 
             'context_or_url'=>$request->video_url ?? 'System Resource',
         ]);
